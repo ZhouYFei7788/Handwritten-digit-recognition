@@ -20,6 +20,19 @@ class PaintLabel(QLabel):
     def mouseReleaseEvent(self, event):
         """释放鼠标事件"""
         self.update()
+
+
+
+
+
+
+
+
+
+
+
+
+
         self.path_updated.emit(self.mouse_path)  # Emit the updated path
 
     def paintEvent(self, event):

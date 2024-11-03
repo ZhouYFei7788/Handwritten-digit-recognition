@@ -38,3 +38,4 @@ def make_prediction(input_tensor):
         probabilities = torch.exp(output)
         predicted_class = torch.argmax(probabilities, dim=1)
     return predicted_class.item()
+

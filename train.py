@@ -3,11 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+import matplotlib.pyplot as plt
 
-# Check if GPU is available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Define the Convolutional Neural Network (CNN) model
+loss_values = []
+# 定义卷积神经网络
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -28,25 +28,25 @@ class Net(nn.Module):
         x = self.fc2(x)
         return torch.log_softmax(x, dim=1)
 
-# Create model instance and move it to the device
+
 model = Net().to(device)
 
-# Define loss function and optimizer
+# 定义 loss 函数和优化器 Adam
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Define data transformations
+# 定义数据转换
 transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.5,), (0.5,))
 ])
 
-# Load the MNIST dataset
+# 加载 MNIST 数据集
 train_dataset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
 
-# Training loop
-num_epochs = 5
+
+num_epochs = 100
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
@@ -60,9 +60,18 @@ for epoch in range(num_epochs):
         optimizer.step()
 
         running_loss += loss.item()
-
-    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {running_loss/len(train_loader):.4f}')
+        average_loss = running_loss / len(train_loader)
+        loss_values.append(average_loss)
+    print(f'轮次 [{epoch+1}/{num_epochs}], 损失: {running_loss/len(train_loader):.4f}')
 
 # Save the trained model
 torch.save(model.state_dict(), 'mnist_cnn.pth')
-print('Model training complete and saved as mnist_cnn.pth')
+print('保存到 mnist_cnn.pth')
+plt.figure(figsize=(10, 5))
+plt.plot(range(1, num_epochs + 1), loss_values, marker='o', color='b', label="Training Loss")
+plt.xlabel("轮次")
+plt.ylabel("损失")
+plt.title("训练损失曲线")
+plt.legend()
+plt.grid()
+plt.show()

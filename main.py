@@ -1,27 +1,17 @@
-import sys
-import torch
-import torch.nn as nn
-import cv2
-import numpy as np
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QLineEdit, QProgressBar
-from PyQt5.QtCore import pyqtSignal, Qt, QTimer
-from PyQt5.QtGui import QPainter, QPen
-from ui import Ui_MainWindow  # 确保你有这个导入
-from dect import Net  # 假设模型类定义在 train.py 中
 
+import torch
+from torchsummary import summary
+import io
+import contextlib
 # 定义设备
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 import sys
-import torch
-import torch.nn as nn
-import cv2
 import numpy as np
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QFileDialog, QLineEdit, QProgressBar
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer
 from PyQt5.QtGui import QPainter, QPen
-from ui import Ui_MainWindow  # 确保你有这个导入
-from dect import Net  # 假设模型类定义在 train.py 中
+from ui import Ui_MainWindow
+from dect import Net
 
 # 定义设备
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -54,6 +44,7 @@ class PaintLabel(QLabel):
             input_tensor = self.parent().paths_to_tensor()  # 获取绘制路径对应的张量
             if input_tensor is not None:
                 similarity_scores = self.parent().make_prediction(input_tensor)  # 进行推理
+
                 print(f"实时预测结果: {similarity_scores}")  # 打印预测结果
                 self.parent().update_progress_bars(similarity_scores)  # 更新进度条
 
@@ -120,16 +111,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """初始化 UI"""
         self.pushButton.clicked.connect(self.load_model)  # 连接信号
 
+
+
     def load_model(self):
         """打开文件对话框选择模型文件"""
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "选择模型文件", "", "模型文件 (*.pth);;所有文件 (*)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, "选择模型文件", "", "模型文件 (*.pth);;所有文件 (*)",
+                                                   options=options)
 
         if file_name:
             self.pushButton.setText("加载模型: " + file_name.split('/')[-1])  # 显示文件名
             try:
                 self.model.load_state_dict(torch.load(file_name, map_location=device))  # 加载模型权重
                 print(f"模型已加载: {file_name}")
+                self.textEdit.clear()  # 清空之前的文本
+                self.textEdit.append("模型结构:\n")  # 添加标题
+
+                # 打印模型结构
+                model_info = str(self.model)  # 获取模型结构信息
+                self.textEdit.append(model_info)  # 将模型信息显示在 QTextEdit 控件中
+
+                # 打印详细的参数信息
+                self.textEdit.append("\n模型详细信息:\n")
+                buffer = io.StringIO()  # 创建一个字符串缓冲区
+                with contextlib.redirect_stdout(buffer):  # 重定向标准输出到缓冲区
+                    summary(self.model, input_size=(1, 28, 28), device=device.type)  # 打印详细信息
+
+                # 获取缓冲区的内容并追加到 QTextEdit
+                summary_info = buffer.getvalue()
+                self.textEdit.append(summary_info)  # 将模型详细信息显示在 QTextEdit 控件中
+
             except Exception as e:
                 print(f"加载模型失败: {e}")  # 捕获并打印错误信息
 
@@ -203,16 +214,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for i, score in enumerate(similarity_scores):
             if i < len(progress_bars):  # 确保索引不越界
                 progress_bars[i].setValue(score * 100)  # 将分数转为百分比形式
-        similarity_scores = np.array(similarity_scores)
-        # 计算最大相似度分数及其索引
-        max_score = max(similarity_scores)
-        max_index = similarity_scores.argmax()  # 获取最大值的索引
-        # 归一化
-        normalized_score = (max_score - min(similarity_scores)) / (max(similarity_scores) - min(similarity_scores))
 
-        # 将归一化值映射到0到9之间
-        mapped_score = int(normalized_score * 9)
-        self.label_3.setText(f"推理值: {mapped_score}")  # 这里是整数值
+        max_index = similarity_scores.argmax()  # 获取相似度最大类别的索引
+        self.label_3.setText(f"推理值: {max_index}")  # 将推理类别值显示在label_3上
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+digraph Net {
+	fontname=Arial fontsize=14
+	Input [label="Input
+(1, 28, 28)"]
+	Conv1 [label="Conv2d(1, 32, 3, 1)"]
+	Conv2 [label="Conv2d(32, 64, 3, 1)"]
+	Conv3 [label="Conv2d(64, 64, 3, 1)"]
+	FC1 [label="Linear(64 * 3 * 3, 64)"]
+	FC2 [label="Linear(64, 10)"]
+	Output [label="Output
+(10)"]
+	Input -> Conv1
+	Conv1 -> Conv2
+	Conv2 -> Conv3
+	Conv3 -> FC1
+	FC1 -> FC2
+	FC2 -> Output
+}
